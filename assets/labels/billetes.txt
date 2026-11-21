@@ -1,0 +1,17 @@
+# Clases del modelo de billetes colombianos.
+#
+# ORDEN CRITICO: es el que define el data.yaml con el que se entreno el modelo
+# (orden alfabetico de Roboflow: 100k, 10k, 20k, 2k, 50k, 5k), NO ascendente
+# por valor. Si se reordena, la aplicacion anuncia denominaciones equivocadas.
+#
+# Modelo: YOLO26n - dataset Colombian Bills Detection v3 (CC BY 4.0)
+#
+# La aplicacion extrae el valor en pesos del primer numero de 3 a 6 digitos de
+# cada etiqueta, de modo que "billete_100000" se anuncia como
+# "Billete de cien mil pesos".
+billete_100000
+billete_10000
+billete_20000
+billete_2000
+billete_50000
+billete_5000

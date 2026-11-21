@@ -1,0 +1,54 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+
+// ----------------------------------------------------------------------
+// Bloque 1: se registran las correcciones ANTES de que nadie evalue nada.
+//
+// Unificacion del objetivo JVM en todos los plugins: varios plugins de
+// terceros (tflite_flutter entre ellos) siguen declarando Java 1.8, mientras
+// que Kotlin toma por defecto la version del JDK que ejecuta Gradle (21).
+// Kotlin 2.x rechaza esa combinacion con "Inconsistent JVM-target
+// compatibility". Aqui se fuerzan Java 17 y Kotlin 17 en cada subproyecto,
+// una vez que el plugin ha terminado su propia configuracion.
+// ----------------------------------------------------------------------
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+
+    project.afterEvaluate { proj ->
+        if (proj.hasProperty("android")) {
+            proj.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+            try {
+                proj.android.kotlinOptions {
+                    jvmTarget = "17"
+                }
+            } catch (Exception ignored) {
+                // El subproyecto no usa Kotlin: no hay nada que alinear.
+            }
+        }
+    }
+}
+
+// ----------------------------------------------------------------------
+// Bloque 2: separado a proposito. evaluationDependsOn fuerza la evaluacion
+// del modulo :app, y si se mezclara con el bloque anterior Gradle fallaria
+// con "Cannot run Project.afterEvaluate when the project is already
+// evaluated".
+// ----------------------------------------------------------------------
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

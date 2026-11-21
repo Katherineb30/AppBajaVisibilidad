@@ -1,0 +1,79 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader -> localProperties.load(reader) }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
+def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
+
+android {
+    namespace = "com.uts.baja_vision_app"
+    compileSdk = 36
+
+    // NDK fijado a la version que ya esta instalada en el equipo.
+    // Si se deja "flutter.ndkVersion" o se omite, AGP intenta resolverlo
+    // llamando a sdkmanager.bat, que en el SDK 36 esta deprecado y falla.
+    ndkVersion = "28.2.13676358"
+
+    compileOptions {
+        // Requerido por ML Kit y por las APIs de java.time que usan los plugins.
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId = "com.uts.baja_vision_app"
+        // 24 = Android 7.0. Limite inferior comun a camera, ML Kit v2 y TFLite.
+        minSdk = 24
+        targetSdk = 36
+        versionCode = flutterVersionCode.toInteger()
+        versionName = flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            // Firma de depuracion para poder probar el release en el telefono
+            // sin generar un keystore. Sustituir antes de publicar.
+            signingConfig = signingConfigs.debug
+            minifyEnabled = false
+            shrinkResources = false
+        }
+    }
+
+    // El interprete de TFLite necesita leer el modelo SIN comprimir; si Gradle
+    // lo comprime, Interpreter.fromAsset falla en tiempo de ejecucion.
+    androidResources {
+        noCompress += ["tflite", "lite", "bin"]
+    }
+
+    // ML Kit y tflite_flutter pueden aportar la misma biblioteca nativa.
+    packaging {
+        jniLibs {
+            pickFirsts += [
+                "lib/**/libtensorflowlite_jni.so",
+                "lib/**/libtensorflowlite_gpu_jni.so",
+                "lib/**/libc++_shared.so",
+            ]
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+}

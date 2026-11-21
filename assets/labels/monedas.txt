@@ -1,0 +1,22 @@
+# Clases del modelo de monedas colombianas.
+#
+# ORDEN CRITICO: es el que define el modelo entrenado, y aqui NO es alfabetico
+# sino ascendente por valor. Verificado con `model.names` sobre el best.pt:
+#
+#   0 -> 50     1 -> 100     2 -> 200     3 -> 500     4 -> 1000
+#
+# Si se reordena, la aplicacion anuncia denominaciones equivocadas.
+#
+# El prefijo "moneda_" es significativo: la aplicacion lo usa para saber que la
+# deteccion viene del modelo de monedas, y para decir "Moneda de ..." en vez de
+# "Billete de ...".
+#
+# El cero a la izquierda de la primera linea tampoco es decorativo: el valor se
+# extrae del primer numero de 3 a 6 digitos de la etiqueta, de modo que
+# "moneda_50" no se leeria y "moneda_050" se anuncia como
+# "Moneda de cincuenta pesos".
+moneda_050
+moneda_100
+moneda_200
+moneda_500
+moneda_1000

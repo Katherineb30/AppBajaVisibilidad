@@ -1,0 +1,56 @@
+name: baja_vision_app
+description: >-
+  VisionApp - Asistente visual offline para personas con baja vision o ceguera.
+  Reconocimiento de texto impreso (ML Kit v2) y de billetes colombianos (YOLOv8 / TFLite),
+  con salida por voz mediante el motor TTS de Android.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Arquitectura MVVM ---
+  provider: ^6.1.2
+
+  # --- Camara ---
+  camera: ^0.11.0+2
+
+  # --- OCR offline: ML Kit Text Recognition v2 ---
+  google_mlkit_text_recognition: ^0.14.0
+
+  # --- Inferencia offline del modelo YOLO exportado a TFLite ---
+  # 0.12 es imprescindible: trae un runtime de TensorFlow Lite lo bastante
+  # reciente para leer modelos con "buffer offset" (los pesos anexados al final
+  # del archivo en lugar de incrustados). Con 0.11 el modelo carga pero al
+  # ejecutar falla con "Input tensor lacks data".
+  tflite_flutter: ^0.12.0
+
+  # --- Motor de sintesis de voz (TextToSpeech de Android) ---
+  flutter_tts: ^4.2.0
+
+  # --- Permisos en tiempo de ejecucion ---
+  permission_handler: ^11.3.1
+
+  # --- Preprocesamiento de imagen (conversion YUV/NV21 -> RGB, resize, letterbox) ---
+  image: ^4.2.0
+
+  path_provider: ^2.1.4
+
+  # --- Verificacion de integridad de los modelos actualizados (RNF-S3) ---
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/labels/

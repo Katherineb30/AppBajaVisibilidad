@@ -1,0 +1,39 @@
+MODELO DE BILLETES
+==================
+
+Archivo en uso:  billetes_yolov8.tflite
+Origen:          best.pt -> SavedModel -> TFLite (conversor de TensorFlow)
+Arquitectura:    YOLO26n
+Dataset:         Colombian Bills Detection v3 (CC BY 4.0)
+Tamano:          9,7 MB
+
+Contrato verificado del modelo:
+
+  entrada : [1, 640, 640, 3]  float32   (NHWC, canales al final)
+  salida  : [1, 10, 8400]     float32   (4 coordenadas + 6 clases)
+
+IMPORTANTE - como se genero:
+
+  NO se uso model.export(format="tflite"), que deja los pesos ANEXADOS al
+  final del archivo (formato "buffer offset"). El runtime de TensorFlow Lite
+  de Android no sabe leerlos ahi y falla en cada inferencia con
+  "Input tensor lacks data". Se comprobo con tflite_flutter 0.11 y 0.12.1.
+
+  La conversion correcta pasa por SavedModel:
+      model.export(format="saved_model", imgsz=640)
+      conv = tf.lite.TFLiteConverter.from_saved_model(<ruta>)
+      open("billetes_yolov8.tflite","wb").write(conv.convert())
+
+  Verificacion de este archivo: 239 buffers en linea con 9.605.368 bytes de
+  pesos, 0 buffers con offset externo, 0 tensores sin datos.
+
+Las 6 clases y su orden estan en assets/labels/billetes.txt. Ese orden lo fija
+el data.yaml del entrenamiento (orden alfabetico de Roboflow) y NO debe
+alterarse.
+
+Si en el futuro se reentrena el modelo:
+  * Mantener imgsz=640.
+  * La aplicacion detecta sola si la entrada es NCHW o NHWC, y si la salida es
+    el formato clasico [1, 4+C, A] o el "end to end" [1, N, 6].
+  * Lo unico que hay que actualizar a mano es billetes.txt si cambian las
+    clases o su orden.
