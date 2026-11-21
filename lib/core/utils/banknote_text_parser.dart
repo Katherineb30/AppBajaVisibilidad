@@ -180,6 +180,65 @@ class BanknoteTextParser {
     return textos.map(int.parse).toSet();
   }
 
+  // ====================================================================
+  // Monedas
+  // ====================================================================
+
+  /// Familia actual de monedas colombianas.
+  static const Set<int> denominacionesMoneda = {50, 100, 200, 500, 1000};
+
+  /// La cifra grande acunada en la cara de la moneda.
+  ///
+  /// Los limites de palabra bastan para que "100" no se encuentre dentro de
+  /// "1000", ni "50" dentro de "500": despues del grupo viene otro digito, que
+  /// no es frontera.
+  static final RegExp _numeroMoneda = RegExp(r'\b(50|100|200|500|1000)\b');
+
+  static const Map<String, int> _palabrasMoneda = {
+    'CINCUENTA': 50,
+    'DOSCIENTOS': 200,
+    'QUINIENTOS': 500,
+    'CIEN': 100,
+    'MIL': 1000,
+  };
+
+  /// Extrae la denominacion de una MONEDA a partir del texto del OCR.
+  ///
+  /// Se usa solo cuando el detector ya decidio que lo que hay delante es una
+  /// moneda, y por eso puede ser mas directo que [parse]: no necesita exigir
+  /// la palabra "MIL" para dar por buena una cifra suelta, porque en una
+  /// moneda el unico numero grande acunado es su valor.
+  ///
+  /// Hace falta porque las monedas de 50, 100 y 200 se distinguen sobre todo
+  /// por el diametro, y el modelo no puede usarlo: ve un recorte, sin saber a
+  /// que distancia esta. La cifra acunada, en cambio, es inequivoca.
+  ///
+  /// Devuelve null ante una lectura parcial ("00") o ambigua: es preferible
+  /// callar a anunciar un valor equivocado.
+  static int? parseCoin(String raw) {
+    if (raw.trim().isEmpty) return null;
+    final t = _repararDigitos(_normalizar(raw));
+
+    // Primero, la cifra acunada, que es la evidencia mas directa.
+    final cifras = <String>{};
+    for (final m in _numeroMoneda.allMatches(t)) {
+      cifras.add(m.group(1)!);
+    }
+    cifras.removeWhere(
+      (corto) => cifras.any((otro) => otro != corto && otro.startsWith(corto)),
+    );
+    if (cifras.length == 1) return int.parse(cifras.first);
+    if (cifras.length > 1) return null; // dos cifras distintas: callar
+
+    // Si no hay cifra legible, el valor escrito en palabras.
+    final encontradas = <int>{};
+    for (final e in _palabrasMoneda.entries) {
+      if (RegExp('\\b${e.key}').hasMatch(t)) encontradas.add(e.value);
+    }
+    if (encontradas.length == 1) return encontradas.first;
+    return null;
+  }
+
   /// Mayusculas, sin tildes y con los espacios compactados, que es como se
   /// comparan las expresiones de arriba.
   static String _normalizar(String raw) {

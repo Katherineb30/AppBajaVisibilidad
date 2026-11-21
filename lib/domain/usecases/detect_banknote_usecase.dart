@@ -60,6 +60,9 @@ class DetectBanknoteUseCase {
   int? _lastText;
   int _textAge = 0;
 
+  /// Fotogramas necesarios para anunciar una moneda cuya cifra ya se leyo.
+  static const int coinFramesToConfirmWithText = 1;
+
   bool get isModelReady => _repository.isModelReady;
   String? get modelError => _repository.modelError;
 
@@ -84,6 +87,7 @@ class DetectBanknoteUseCase {
   BanknoteDetection? confirm(
     List<BanknoteDetection> detections, {
     int? textValue,
+    int? coinTextValue,
   }) {
     if (detections.isEmpty) {
       _candidate = -1;
@@ -108,21 +112,24 @@ class DetectBanknoteUseCase {
       return areaA >= areaB ? a : b;
     });
 
-    // El contraste por OCR solo tiene sentido en BILLETES.
+    // Cada tipo de dinero se contrasta con su propio analizador de texto.
     //
-    // El analizador de texto conoce unicamente las denominaciones de billete,
-    // y en una moneda leeria cifras que no le corresponden -- la de mil pesos,
-    // por ejemplo, lleva impreso "MIL PESOS". Ante una moneda se descarta la
-    // lectura y se decide solo con el modelo. Para los billetes nada cambia.
-    final int? cifra;
-    if (best.isCoin) {
-      _lastText = null;
-      _textAge = 0;
-      cifra = null;
-    } else {
-      // Memoria corta de la cifra impresa (ver textMemoryFrames).
-      cifra = _recordarCifra(textValue);
-    }
+    // Las reglas no son las mismas: en un billete la cifra va acompanada de
+    // "MIL", y en una moneda el numero acunado aparece solo. Usar el analizador
+    // de billetes sobre una moneda leeria cifras que no le corresponden.
+    final int? cifra = _recordarCifra(best.isCoin ? coinTextValue : textValue);
+
+    // Si el OCR leyo la cifra, manda ella. Si no, decide el modelo.
+    //
+    // Las monedas de 50, 100 y 200 se distinguen sobre todo por el diametro, y
+    // el modelo no puede usarlo: ve un recorte, sin saber a que distancia
+    // esta, de modo que entre esas tres se equivoca con frecuencia. Por eso la
+    // cifra acunada tiene prioridad siempre que se consiga leer.
+    //
+    // Cuando no se lee -- la cara que se muestra no lleva numero, o esta
+    // demasiado lejos -- se responde igualmente con el modelo, pero por el
+    // camino exigente: umbral del 85 % y varios fotogramas seguidos. Es la
+    // misma vara que se le aplica a un billete sin verificar.
 
     if (best.denomination <= 0 && cifra == null) return null;
 
@@ -136,7 +143,17 @@ class DetectBanknoteUseCase {
       _hits = 1;
     }
 
-    final necesarios = porTexto ? framesToConfirmWithText : framesToConfirm;
+    // Una moneda con su cifra leida se anuncia en cuanto se lee.
+    //
+    // El numero acunado no es una probabilidad, y el analizador ya rechaza las
+    // lecturas parciales o ambiguas: si dijo 100, es 100. Esperar un segundo
+    // fotograma solo anadiria demora a algo que ya es seguro, y en monedas esa
+    // demora se nota porque hay que sostenerlas quietas y cerca.
+    //
+    // En billetes no cambia nada: siguen pidiendo los mismos fotogramas.
+    final necesarios = porTexto
+        ? (best.isCoin ? coinFramesToConfirmWithText : framesToConfirmWithText)
+        : framesToConfirm;
     if (_hits < necesarios) return null;
 
     // El umbral de confianza del RNF-F4 se aplica al juicio del MODELO. Si la
@@ -152,7 +169,7 @@ class DetectBanknoteUseCase {
     final elegida = coincide.isNotEmpty ? coincide.first : best;
     return elegida.copyWith(
       denomination: valor,
-      label: 'billete_$valor',
+      label: elegida.isCoin ? 'moneda_$valor' : 'billete_$valor',
       verifiedByText: true,
     );
   }

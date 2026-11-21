@@ -48,6 +48,14 @@ class ImageConverter {
 
   static Float32List? _tensor;
   static int _tensorLength = 0;
+
+  // Datos del ultimo fotograma preprocesado, para no repetir el trabajo cuando
+  // el segundo modelo pide exactamente lo mismo.
+  static CameraImage? _ultimaImagen;
+  static int _ultimoLado = -1;
+  static bool _ultimoCanalesPrimero = false;
+  static int _ultimaRotacion = -1;
+  static final LetterboxMeta _ultimaMeta = LetterboxMeta();
   static bool _layoutLogged = false;
   static int _colorTick = 0;
 
@@ -63,6 +71,28 @@ class ImageConverter {
     required bool channelsFirst,
     required LetterboxMeta meta,
   }) {
+    // Memoria de un solo fotograma.
+    //
+    // Con dos modelos (billetes y monedas) este metodo se llama DOS VECES
+    // sobre el mismo fotograma y con los mismos parametros. El resultado seria
+    // identico, asi que la segunda vez se devuelve el tensor ya calculado en
+    // lugar de recorrer otra vez los 640x640 pixeles de salida. No cambia
+    // nada de lo que se calcula: solo evita repetirlo.
+    if (identical(image, _ultimaImagen) &&
+        side == _ultimoLado &&
+        channelsFirst == _ultimoCanalesPrimero &&
+        rotation == _ultimaRotacion &&
+        _tensor != null) {
+      meta
+        ..scale = _ultimaMeta.scale
+        ..padX = _ultimaMeta.padX
+        ..padY = _ultimaMeta.padY
+        ..width = _ultimaMeta.width
+        ..height = _ultimaMeta.height
+        ..side = _ultimaMeta.side;
+      return _tensor!;
+    }
+
     final srcW = image.width;
     final srcH = image.height;
 
@@ -78,6 +108,19 @@ class ImageConverter {
     final padY = ((side - newH) / 2).floorToDouble();
 
     meta
+      ..scale = scale
+      ..padX = padX
+      ..padY = padY
+      ..width = rotW
+      ..height = rotH
+      ..side = side;
+
+    // Se guarda la geometria para poder devolverla en la llamada repetida.
+    _ultimaImagen = image;
+    _ultimoLado = side;
+    _ultimoCanalesPrimero = channelsFirst;
+    _ultimaRotacion = rotation;
+    _ultimaMeta
       ..scale = scale
       ..padX = padX
       ..padY = padY

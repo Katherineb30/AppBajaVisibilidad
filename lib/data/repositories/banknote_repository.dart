@@ -70,6 +70,10 @@ class BanknoteRepository implements IBanknoteRepository {
   /// objeto y hay que quedarse con una sola.
   static const double _solapeMaximo = 0.35;
 
+  /// Confianza a partir de la cual una caja alargada se da por billete sin
+  /// consultar al otro modelo.
+  static const double _confianzaEvidente = 0.80;
+
   @override
   Future<void> prepare() async {
     await _billetes.load();
@@ -99,6 +103,12 @@ class BanknoteRepository implements IBanknoteRepository {
         ? _billetes.detectFrame(image, rotationDegrees)
         : const <BanknoteDetection>[];
 
+    // Si el modelo de billetes ya vio un billete sin margen de duda -- muy
+    // convencido Y con una caja claramente alargada -- no hace falta gastar
+    // una segunda inferencia preguntandole al de monedas. Es el caso mas
+    // frecuente, y es el que mas se nota en la espera.
+    if (_billeteEvidente(deBilletes, image, rotationDegrees)) return deBilletes;
+
     final deMonedas = (monedas != null && monedas.isReady)
         ? monedas.detectFrame(image, rotationDegrees)
         : const <BanknoteDetection>[];
@@ -108,6 +118,28 @@ class BanknoteRepository implements IBanknoteRepository {
     if (deBilletes.isEmpty) return deMonedas;
 
     return _resolver(deBilletes, deMonedas, image, rotationDegrees);
+  }
+
+  /// true si alguna deteccion de billete es tan clara que no merece la pena
+  /// consultar tambien al modelo de monedas.
+  bool _billeteEvidente(
+    List<BanknoteDetection> billetes,
+    CameraImage image,
+    int rotationDegrees,
+  ) {
+    if (billetes.isEmpty) return false;
+
+    final gira = rotationDegrees == 90 || rotationDegrees == 270;
+    final anchoFrame = (gira ? image.height : image.width).toDouble();
+    final altoFrame = (gira ? image.width : image.height).toDouble();
+
+    for (final d in billetes) {
+      if (d.confidence < _confianzaEvidente) continue;
+      if (_relacionDeLados(d.rect, anchoFrame, altoFrame) >= _alargado) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Resuelve los desacuerdos entre los dos modelos.

@@ -51,6 +51,16 @@ class AppStrings {
   static const String detecting = 'DETECTANDO...';
   static const String preparingModel = 'Preparando el detector...';
   static const String moveCloser = 'Acerque el objeto';
+
+  /// Monedas: la cifra acunada es pequena y el OCR necesita verla de cerca.
+  static const String moveCloserCoin = 'Acerque mas la moneda';
+
+  /// Monedas: la cara que se esta mostrando no lleva el numero.
+  ///
+  /// Es la indicacion mas util que se le puede dar a alguien que no ve: las
+  /// monedas de 50, 100 y 200 solo se distinguen con seguridad por la cifra
+  /// acunada, y esa cifra esta en una sola de las dos caras.
+  static const String turnCoin = 'Gire la moneda para ver el numero';
   static const String lowLight = 'Poca luz. Encendiendo la linterna';
   static const String torchOnStatus = 'Poca luz. Linterna encendida';
   static const String torchForColor =

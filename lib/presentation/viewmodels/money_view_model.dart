@@ -80,6 +80,11 @@ class MoneyViewModel extends RecognitionViewModel {
   // incandescente los billetes de 5, 10 y 20 mil viran a rojizo y el modelo
   // los confunde. La luz blanca del LED devuelve el color a su sitio.
   // El usuario siempre puede apagarla manteniendo pulsada la vista de camara.
+  /// Area minima de la caja de una moneda para dar por hecho que el OCR tuvo
+  /// oportunidad de leer la cifra. Por debajo, el numero sale demasiado
+  /// pequeno y lo que toca es acercarla.
+  static const double _areaMonedaLegible = 0.10;
+
   @override
   double get torchOnBelow => 125;
 
@@ -136,6 +141,7 @@ class MoneyViewModel extends RecognitionViewModel {
     // Contraste con la cifra impresa. Solo se consulta el OCR cuando el
     // detector ya ve algo: asi no se paga su coste en cada fotograma.
     int? valorLeido;
+    int? valorMoneda;
     if (detections.isNotEmpty) {
       try {
         final texto = await _recognizeText(image, rotation);
@@ -164,11 +170,20 @@ class MoneyViewModel extends RecognitionViewModel {
         final fuente = dentro.trim();
         valorLeido = fuente.isEmpty ? null : BanknoteTextParser.parse(fuente);
 
+        // La misma lectura, interpretada como moneda.
+        //
+        // Las dos se calculan siempre y el caso de uso elige la que
+        // corresponda segun lo que haya detectado el modelo. Hacen falta dos
+        // analizadores porque las reglas son distintas: en un billete la cifra
+        // va acompanada de "MIL", y en una moneda el numero acunado esta solo.
+        valorMoneda =
+            fuente.isEmpty ? null : BanknoteTextParser.parseCoin(fuente);
+
         // Se traza SIEMPRE, tambien cuando no se lee cifra: sin esta linea no
         // habia forma de saber si el OCR no veia el numero o si lo veia y el
         // analizador lo descartaba.
         debugPrint(
-          'OCR-BILLETE ${valorLeido ?? "sin cifra"} '
+          'OCR billete=${valorLeido ?? "-"} moneda=${valorMoneda ?? "-"} '
           '(${texto.blocks.length} bloques, ${fuente.isEmpty ? 0 : fuente.split("\n").length} dentro de la caja) '
           '<- "${fuente.replaceAll('\n', ' / ')}"',
         );
@@ -178,7 +193,11 @@ class MoneyViewModel extends RecognitionViewModel {
       }
     }
 
-    final best = _detectBanknote.confirm(detections, textValue: valorLeido);
+    final best = _detectBanknote.confirm(
+      detections,
+      textValue: valorLeido,
+      coinTextValue: valorMoneda,
+    );
     if (best == null) {
       if (detections.isEmpty) {
         setHint(AppStrings.searchingMoney);
@@ -188,7 +207,23 @@ class MoneyViewModel extends RecognitionViewModel {
               ? a
               : b,
         );
-        if (mayor.rect.width * mayor.rect.height < 0.06) {
+        final area = mayor.rect.width * mayor.rect.height;
+
+        if (mayor.isCoin && valorMoneda == null) {
+          // Hay una moneda a la vista pero no se pudo leer su cifra, que es lo
+          // unico que distingue con seguridad las de 50, 100 y 200.
+          //
+          // El aviso se elige segun el motivo, porque la accion que debe hacer
+          // el usuario es distinta y no puede deducirla mirando la pantalla:
+          // si esta lejos hay que acercarla, y si ya esta cerca lo que pasa es
+          // que esa cara no lleva el numero.
+          await announceProblem(
+            area < _areaMonedaLegible
+                ? AppStrings.moveCloserCoin
+                : AppStrings.turnCoin,
+            tag: area < _areaMonedaLegible ? 'acercar-moneda' : 'girar-moneda',
+          );
+        } else if (area < 0.06) {
           // Se ve el billete pero muy lejos: acercarlo sube la confianza.
           await announceProblem(AppStrings.moveCloser, tag: 'acercar-billete');
         } else {
