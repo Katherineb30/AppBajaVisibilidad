@@ -281,7 +281,10 @@ class _MoneyViewState extends State<MoneyView> with WidgetsBindingObserver {
       case RecognitionStatus.analyzing:
         return AppStrings.analyzing;
       case RecognitionStatus.success:
-        return AppStrings.detectedNoteLabel;
+        // El rotulo sigue al tipo detectado, no al nombre del modulo.
+        return vm.confirmed?.isCoin == true
+            ? AppStrings.detectedCoinLabel
+            : AppStrings.detectedNoteLabel;
       case RecognitionStatus.notFound:
         return AppStrings.noNoteFound;
       case RecognitionStatus.error:
@@ -321,7 +324,9 @@ class _NoteResult extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    AppStrings.detectedNoteLabel,
+                    note.isCoin
+                        ? AppStrings.detectedCoinLabel
+                        : AppStrings.detectedNoteLabel,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: 2),
@@ -345,19 +350,21 @@ class _NoteResult extends StatelessWidget {
                   // Distingue una lectura confirmada por la cifra impresa de
                   // una que solo sostiene el modelo de vision.
                   if (note.verifiedByText)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.verified_rounded,
                             size: 18,
                             color: AppColors.moneyAccent,
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'Cifra leida en el billete',
-                            style: TextStyle(
+                            note.isCoin
+                                ? AppStrings.verifiedOnCoin
+                                : AppStrings.verifiedOnNote,
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: AppColors.moneyAccent,

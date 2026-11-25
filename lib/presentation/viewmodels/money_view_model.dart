@@ -209,23 +209,41 @@ class MoneyViewModel extends RecognitionViewModel {
         );
         final area = mayor.rect.width * mayor.rect.height;
 
-        if (mayor.isCoin && valorMoneda == null) {
-          // Hay una moneda a la vista pero no se pudo leer su cifra, que es lo
-          // unico que distingue con seguridad las de 50, 100 y 200.
-          //
-          // El aviso se elige segun el motivo, porque la accion que debe hacer
-          // el usuario es distinta y no puede deducirla mirando la pantalla:
-          // si esta lejos hay que acercarla, y si ya esta cerca lo que pasa es
-          // que esa cara no lleva el numero.
-          await announceProblem(
-            area < _areaMonedaLegible
-                ? AppStrings.moveCloserCoin
-                : AppStrings.turnCoin,
-            tag: area < _areaMonedaLegible ? 'acercar-moneda' : 'girar-moneda',
-          );
+        // El guion se elige PRIMERO por el tipo de objeto y despues por el
+        // motivo del fallo.
+        //
+        // Antes la condicion preguntaba a la vez por moneda y por falta de
+        // cifra, de modo que una moneda cuyo numero SI se habia leido -- pero
+        // que aun no reunia los fotogramas de confirmacion -- caia en las
+        // ramas de billete, y la aplicacion decia "acerque el objeto" o "no
+        // estoy seguro del billete" teniendo una moneda delante. Para quien no
+        // ve, ese sustantivo es la unica pista disponible: nombrarlo mal lo
+        // manda a corregir lo que no es.
+        if (mayor.isCoin) {
+          if (area < _areaMonedaLegible) {
+            // Esta lejos: la cifra acunada queda demasiado pequena para el OCR.
+            await announceProblem(
+              AppStrings.moveCloserCoin,
+              tag: 'acercar-moneda',
+            );
+          } else if (valorMoneda == null) {
+            // Ya esta cerca y aun asi no hay numero: es la cara sin cifra.
+            // Es lo unico que separa con seguridad las de 50, 100 y 200.
+            await announceProblem(AppStrings.turnCoin, tag: 'girar-moneda');
+          } else {
+            // Se leyo la cifra pero todavia falta confirmacion: misma accion
+            // correctiva que en un billete, con el sustantivo correcto.
+            await announceProblem(
+              AppStrings.lowConfidenceCoin,
+              tag: 'confianza-baja-moneda',
+            );
+          }
         } else if (area < 0.06) {
           // Se ve el billete pero muy lejos: acercarlo sube la confianza.
-          await announceProblem(AppStrings.moveCloser, tag: 'acercar-billete');
+          await announceProblem(
+            AppStrings.moveCloserNote,
+            tag: 'acercar-billete',
+          );
         } else {
           // RNF-F4: por debajo del 85 % no se anuncia un resultado incierto,
           // se pide repetir la captura.
@@ -239,11 +257,18 @@ class MoneyViewModel extends RecognitionViewModel {
     }
 
     _confirmed = best;
-    setHint(AppStrings.detectedNoteLabel);
+    // El rotulo acompana al tipo detectado: "MONEDA DETECTADA" cuando lo es.
+    // TalkBack lee este aviso como region viva, asi que es tambien lo primero
+    // que oye quien usa lector de pantalla.
+    setHint(
+      best.isCoin ? AppStrings.detectedCoinLabel : AppStrings.detectedNoteLabel,
+    );
     notifyListeners();
 
     // Se anuncia la denominacion completa, en palabras y de una sola vez.
-    // Mantener el mismo billete a la vista no repite el anuncio en bucle.
+    // La frase ya distingue el tipo: displayName antepone "Billete de" o
+    // "Moneda de" segun la etiqueta del modelo.
+    // Mantener el mismo objeto a la vista no repite el anuncio en bucle.
     _lastPhrase = best.spokenPhrase;
     if (shouldAnnounce(best.tag)) {
       await tts.speakResult(best.spokenPhrase, tag: best.tag);

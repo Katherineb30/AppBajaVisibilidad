@@ -25,12 +25,12 @@ class AppStrings {
   static const String textModuleTitle = 'TEXTO';
   static const String textModuleSubtitle = 'Leer texto con la camara';
   static const String moneyModuleTitle = 'DINERO';
-  static const String moneyModuleSubtitle = 'Identificar billetes';
+  static const String moneyModuleSubtitle = 'Identificar billetes y monedas';
 
   static const String homeWelcome =
       'Vision App. Asistente visual. Toque la parte superior de la pantalla '
-      'para leer texto. Toque la parte inferior para identificar billetes. '
-      'Todo funciona sin conexion a Internet.';
+      'para leer texto. Toque la parte inferior para identificar billetes y '
+      'monedas. Todo funciona sin conexion a Internet.';
 
   // --- Barra de acciones ---
   static const String actionHome = 'INICIO';
@@ -46,11 +46,17 @@ class AppStrings {
 
   // --- Estados de camara / deteccion ---
   static const String searchingText = 'Buscando texto';
-  static const String searchingMoney = 'Buscando billete';
+
+  /// El modulo reconoce las dos cosas, asi que el aviso no puede nombrar solo
+  /// una: quien no ve no sabe si la aplicacion esta ignorando su moneda.
+  static const String searchingMoney = 'Buscando billete o moneda';
   static const String analyzing = 'ANALIZANDO';
   static const String detecting = 'DETECTANDO...';
   static const String preparingModel = 'Preparando el detector...';
   static const String moveCloser = 'Acerque el objeto';
+
+  /// Billetes: se ve la silueta pero demasiado lejos para leer la cifra.
+  static const String moveCloserNote = 'Acerque mas el billete';
 
   /// Monedas: la cifra acunada es pequena y el OCR necesita verla de cerca.
   static const String moveCloserCoin = 'Acerque mas la moneda';
@@ -64,7 +70,7 @@ class AppStrings {
   static const String lowLight = 'Poca luz. Encendiendo la linterna';
   static const String torchOnStatus = 'Poca luz. Linterna encendida';
   static const String torchForColor =
-      'Encendiendo la linterna para distinguir mejor el color del billete';
+      'Encendiendo la linterna para distinguir mejor el color del dinero';
   static const String torchOnSpoken = 'Linterna encendida';
   static const String torchOffSpoken = 'Linterna apagada';
   static const String torchHint =
@@ -74,10 +80,30 @@ class AppStrings {
   // --- Resultados ---
   static const String detectedTextLabel = 'TEXTO DETECTADO';
   static const String detectedNoteLabel = 'BILLETE DETECTADO';
+
+  /// El modulo de dinero reconoce billetes y monedas, de modo que el rotulo
+  /// del resultado se elige segun lo detectado. Nombrar "billete" cuando lo
+  /// que hay en la mano es una moneda desorienta a quien no puede comprobarlo
+  /// mirando la pantalla.
+  static const String detectedCoinLabel = 'MONEDA DETECTADA';
+
   static const String noTextFound = 'No se encontro texto. Acerque la camara al papel.';
-  static const String noNoteFound = 'No se detecto ningun billete. Muestre el billete completo.';
+  static const String noNoteFound =
+      'No se detecto dinero. Muestre el billete o la moneda completa.';
   static const String lowConfidence =
       'No estoy seguro del billete. Cambie el angulo e intente de nuevo.';
+
+  /// Version del aviso anterior para monedas.
+  ///
+  /// La accion que se le pide al usuario tambien cambia: en un billete basta
+  /// con variar el angulo, mientras que en una moneda lo que suele faltar es
+  /// la cara donde esta acunada la cifra.
+  static const String lowConfidenceCoin =
+      'No estoy seguro de la moneda. Girela o cambie el angulo e intente de nuevo.';
+
+  /// Sello de verificacion del panel de resultado.
+  static const String verifiedOnNote = 'Cifra leida en el billete';
+  static const String verifiedOnCoin = 'Cifra leida en la moneda';
 
   // --- Permisos y errores ---
   static const String cameraPermissionTitle = 'Permiso de camara';
@@ -89,9 +115,9 @@ class AppStrings {
   static const String cameraUnavailable =
       'Sin acceso a la camara. Modo demostracion activo.';
   static const String modelMissing =
-      'El modelo de billetes no esta disponible. Revise la instalacion.';
+      'El detector de dinero no esta disponible. Revise la instalacion.';
   static const String modelBroken =
-      'El modelo de billetes no se pudo ejecutar. El archivo esta incompleto.';
+      'El detector de dinero no se pudo ejecutar. El archivo esta incompleto.';
 
   /// RNF-F3: todo error debe ofrecer una alternativa al usuario.
   static const String errorAlternative =
