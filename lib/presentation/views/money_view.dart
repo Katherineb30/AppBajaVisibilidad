@@ -58,6 +58,7 @@ class _MoneyViewState extends State<MoneyView> with WidgetsBindingObserver {
       permissionService: locator.permissions,
       tts: locator.tts,
       diagnostics: locator.diagnostics,
+      preferences: locator.preferences,
       detectBanknote: locator.newDetectBanknoteUseCase(),
       recognizeText: locator.newRecognizeTextUseCase(),
     );

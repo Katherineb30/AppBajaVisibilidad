@@ -7,9 +7,11 @@
 // ==========================================================================
 
 import '../../data/repositories/banknote_repository.dart';
+import '../../data/repositories/preferences_repository.dart';
 import '../../data/repositories/text_recognition_repository.dart';
 import '../../data/services/banknote_detector_service.dart';
 import '../../data/services/camera_service.dart';
+import '../../data/services/database_service.dart';
 import '../../data/services/diagnostics_service.dart';
 import '../../data/services/model_storage_service.dart';
 import '../../data/services/ocr_service.dart';
@@ -17,6 +19,7 @@ import '../../data/services/permission_service.dart';
 import '../../data/services/tts_service.dart';
 import '../../domain/usecases/detect_banknote_usecase.dart';
 import '../../domain/usecases/recognize_text_usecase.dart';
+import '../../domain/usecases/user_preferences_usecase.dart';
 
 /// Inyeccion de dependencias sencilla y explicita.
 ///
@@ -44,6 +47,11 @@ class ServiceLocator {
     fileName: 'monedas.tflite',
     assetPath: 'assets/models/monedas.tflite',
   );
+
+  /// Base de datos local y preferencias del usuario (una sola para toda la app).
+  final DatabaseService database = DatabaseService();
+  late final UserPreferencesUseCase preferences =
+      UserPreferencesUseCase(PreferencesRepository(database));
 
   CameraService newCameraService() => CameraService();
 

@@ -25,6 +25,7 @@ import '../../data/services/camera_service.dart';
 import '../../data/services/diagnostics_service.dart';
 import '../../data/services/permission_service.dart';
 import '../../data/services/tts_service.dart';
+import '../../domain/usecases/user_preferences_usecase.dart';
 
 /// Logica comun a los dos modulos de reconocimiento (texto y dinero).
 ///
@@ -36,12 +37,14 @@ abstract class RecognitionViewModel extends ChangeNotifier {
     required this.permissionService,
     required this.tts,
     required this.diagnostics,
+    required this.preferences,
   });
 
   final CameraService cameraService;
   final PermissionService permissionService;
   final TtsService tts;
   final DiagnosticsService diagnostics;
+  final UserPreferencesUseCase preferences;
 
   /// Nombre del modulo para las estadisticas de RF08.
   String get moduleName;
@@ -155,6 +158,7 @@ abstract class RecognitionViewModel extends ChangeNotifier {
       return;
     }
 
+    await _cargarPreferencias();
     try {
       await prepareModule();
       await cameraService.initialize();
@@ -175,6 +179,19 @@ abstract class RecognitionViewModel extends ChangeNotifier {
       await tts.speakResult(
         '${AppStrings.cameraUnavailable} ${AppStrings.errorAlternative}',
       );
+    }
+  }
+
+  /// Lee de la base de datos local como dejo el usuario la realidad
+  /// aumentada y la deteccion automatica. Si falla, sigue con los valores
+  /// por defecto: la app nunca se detiene por esto.
+  Future<void> _cargarPreferencias() async {
+    try {
+      _overlayEnabled = await preferences.cargarRealidadAumentada();
+      _autoMode = await preferences.cargarDeteccionAutomatica();
+      notifyListeners();
+    } catch (e, st) {
+      diagnostics.recordError('preferencias/$moduleName', e, st);
     }
   }
 
@@ -229,6 +246,7 @@ abstract class RecognitionViewModel extends ChangeNotifier {
 
   Future<void> toggleOverlay() async {
     _overlayEnabled = !_overlayEnabled;
+    unawaited(preferences.guardarRealidadAumentada(_overlayEnabled));
     HapticFeedback.selectionClick();
     notifyListeners();
     await tts.speakStatus(
@@ -250,6 +268,7 @@ abstract class RecognitionViewModel extends ChangeNotifier {
 
   Future<void> toggleAutoMode() async {
     _autoMode = !_autoMode;
+    unawaited(preferences.guardarDeteccionAutomatica(_autoMode));
     HapticFeedback.selectionClick();
     notifyListeners();
     await tts.speakStatus(

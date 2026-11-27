@@ -32,6 +32,7 @@ class MoneyViewModel extends RecognitionViewModel {
     required super.permissionService,
     required super.tts,
     required super.diagnostics,
+    required super.preferences,
     required DetectBanknoteUseCase detectBanknote,
     required RecognizeTextUseCase recognizeText,
   })  : _detectBanknote = detectBanknote,

@@ -57,6 +57,7 @@ class _TextViewState extends State<TextView> with WidgetsBindingObserver {
       permissionService: locator.permissions,
       tts: locator.tts,
       diagnostics: locator.diagnostics,
+      preferences: locator.preferences,
       recognizeText: locator.newRecognizeTextUseCase(),
     );
   }

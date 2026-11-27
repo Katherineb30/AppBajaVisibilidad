@@ -26,6 +26,7 @@ class TextViewModel extends RecognitionViewModel {
     required super.permissionService,
     required super.tts,
     required super.diagnostics,
+    required super.preferences,
     required RecognizeTextUseCase recognizeText,
   }) : _recognizeText = recognizeText;
 
